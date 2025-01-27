@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 
 export default function ThreeARScene() {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [detectionMessage, setDetectionMessage] = useState<string>('En attente de la détection du sol...');
 
   useEffect(() => {
     // Création de la scène
@@ -22,28 +22,25 @@ export default function ThreeARScene() {
     renderer.xr.enabled = true;
     mountRef.current!.appendChild(renderer.domElement);
 
-    // Vérifiez si l'AR est supporté avant d'ajouter le bouton
-    let arButton: HTMLElement | null = null;
-    if ('xr' in navigator) {
-      arButton = ARButton.createButton(renderer);
-      document.body.appendChild(arButton);
-    } else {
-      console.warn('WebXR n\'est pas supporté dans ce navigateur');
-    }
+    // Bouton AR
+    const sessionInit = {
+      requiredFeatures: ['hit-test'], // Détection de surface
+    };
+    const arButton = ARButton.createButton(renderer, sessionInit);
+    document.body.appendChild(arButton);
 
-    // Lumières (pour la visualisation en mode AR)
+    // Lumières
     const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
     scene.add(light);
 
     // Chargement du modèle 3D
     const loader = new GLTFLoader();
     let model: THREE.Group | null = null;
-
     loader.load(
       '/models/mercedes.glb',
       (gltf) => {
         model = gltf.scene;
-        model.scale.set(0.1, 0.1, 0.1);
+        model.scale.set(20, 20, 20); // Ajustement de l'échelle pour AR
         console.log('Modèle chargé avec succès');
       },
       undefined,
@@ -52,40 +49,25 @@ export default function ThreeARScene() {
       }
     );
 
-    // Contrôles orbitaux (optionnels, utiles en mode non-AR)
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    // Gestion du hit-test
+    let hitTestSource: XRHitTestSource | null = null;
+    let hitTestSourceRequested = false;
+    const reticle = new THREE.Mesh(
+      new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+    );
+    reticle.visible = false;
+    scene.add(reticle);
 
-    // Gestionnaire de tap sur l'écran
-    const onSelect = (event: XRInputSourceEvent) => {
-      if (model && renderer.xr.isPresenting) {
+    const onSelect = () => {
+      if (reticle.visible && model) {
         const modelClone = model.clone();
-        
-        // Obtenir la position du contrôleur AR ou utiliser la position de la caméra
-        if ('frame' in event) {
-          const xrEvent = event as XRInputSourceEvent;
-          const frame = xrEvent.frame;
-          const referenceSpace = renderer.xr.getReferenceSpace();
-          
-          if (frame && referenceSpace) {
-            const pose = frame.getPose(xrEvent.inputSource.targetRaySpace, referenceSpace);
-            if (pose) {
-              const matrix = new THREE.Matrix4();
-              matrix.fromArray(pose.transform.matrix);
-              
-              modelClone.position.setFromMatrixPosition(matrix);
-              modelClone.quaternion.setFromRotationMatrix(matrix);
-            }
-          }
-        }
-        
+        modelClone.position.copy(reticle.position);
+        modelClone.rotation.copy(reticle.rotation);
         scene.add(modelClone);
-        console.log('Modèle cloné ajouté à la scène');
       }
     };
 
-    // Écouter l'événement select sur la session XR
     renderer.xr.addEventListener('sessionstart', () => {
       const session = renderer.xr.getSession();
       if (session) {
@@ -93,10 +75,44 @@ export default function ThreeARScene() {
       }
     });
 
-    // Animation
     const animate = () => {
-      renderer.setAnimationLoop(() => {
-        controls.update();
+      renderer.setAnimationLoop((_, frame) => {
+        if (frame) {
+          const session = renderer.xr.getSession();
+          if (session && !hitTestSourceRequested) {
+            session
+              .requestReferenceSpace('viewer')
+              .then((referenceSpace) => {
+                if (session.requestHitTestSource) {
+                  return session.requestHitTestSource({ space: referenceSpace });
+                }
+                return null;
+              })
+              .then((source) => {
+                if (source) hitTestSource = source;
+              })
+              .catch(console.error);
+            hitTestSourceRequested = true;
+          }
+
+          if (hitTestSource) {
+            const referenceSpace = renderer.xr.getReferenceSpace();
+            if (referenceSpace) {
+              const hitTestResults = frame.getHitTestResults(hitTestSource);
+              if (hitTestResults.length > 0) {
+                const hit = hitTestResults[0];
+                const pose = hit.getPose(referenceSpace);
+                if (pose) {
+                  reticle.visible = true;
+                  reticle.matrix.fromArray(pose.transform.matrix);
+                  reticle.position.setFromMatrixPosition(reticle.matrix);
+                }
+              } else {
+                reticle.visible = false;
+              }
+            }
+          }
+        }
         renderer.render(scene, camera);
       });
     };
@@ -112,20 +128,28 @@ export default function ThreeARScene() {
 
     // Nettoyage
     return () => {
-      const session = renderer.xr.getSession();
-      if (session) {
-        session.removeEventListener('select', onSelect);
-      }
-      mountRef.current?.removeChild(renderer.domElement);
-      if (arButton) document.body.removeChild(arButton);
       window.removeEventListener('resize', onResize);
+      if (hitTestSource) hitTestSource.cancel();
+      if (arButton) document.body.removeChild(arButton);
+      mountRef.current?.removeChild(renderer.domElement);
     };
   }, []);
 
   return (
     <>
       <div ref={mountRef} style={{ width: '100vw', height: '100vh' }} />
-      <p>Hello</p>
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        color: 'white',
+        padding: '10px',
+        borderRadius: '5px',
+      }}>
+        {detectionMessage}
+      </div>
     </>
   );
 }
