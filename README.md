@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AR Car Controller 🚗
 
-## Getting Started
+Une expérience de Réalité Augmentée interactive permettant de placer et contrôler une voiture Mercedes en 3D dans le monde réel.
 
-First, run the development server:
+## 🎯 Fonctionnalités
 
+- Détection des surfaces en temps réel
+- Placement précis du modèle 3D
+- Contrôles intuitifs (avancer, reculer, tourner)
+- Animation réaliste des roues
+- Interface tactile responsive
+- Système de physique réaliste (accélération, friction)
+
+## 🛠 Technologies
+
+- Three.js
+- WebXR Device API
+- React & Next.js
+- TypeScript
+
+## 📱 Compatibilité
+
+Compatible avec les appareils mobiles supportant WebXR (Android avec ARCore ou Chrome, iOS avec ARKit ou Chrome)
+
+## 🚀 Installation
 ```bash
+git clone [votre-repo]
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎮 Utilisation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Autorisez l'accès à la caméra
+2. Scannez votre environnement
+3. Tapez pour placer la voiture
+4. Utilisez les contrôles tactiles ou le clavier pour diriger le véhicule
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🙏 Crédits & Sources
 
-## Learn More
+### Formation
+- [Three.js Journey](https://threejs-journey.com/) par Bruno Simon - Formation complète sur Three.js
 
-To learn more about Next.js, take a look at the following resources:
+### Documentation Officielle
+- [Three.js Examples WebXR](https://threejs.org/examples/?q=webxr)
+- [Documentation WebXR Hit Test](https://immersive-web.github.io/hit-test/)
+- [Documentation ARButton Three.js](https://threejs.org/docs/#examples/en/webxr/ARButton)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📄 Licence
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License
