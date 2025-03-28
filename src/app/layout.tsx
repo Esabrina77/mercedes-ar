@@ -9,10 +9,6 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-      </head>
       <body>{children}</body>
     </html>
   );

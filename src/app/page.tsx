@@ -144,11 +144,19 @@ export default function ThreeARScene() {
             session
               .requestReferenceSpace("viewer")
               .then((referenceSpace) => {
-                return session.requestHitTestSource({ space: referenceSpace });
+                if (session && referenceSpace) {
+                  return session.requestHitTestSource?.({ space: referenceSpace }) || null;
+                }
+                return null;
               })
               .then((source) => {
-                hitTestSource = source || null;
-                hitTestSourceRequested = true;
+                if (source) {
+                  hitTestSource = source;
+                  hitTestSourceRequested = true;
+                }
+              })
+              .catch((error) => {
+                console.error("Erreur lors de la configuration du hit testing:", error);
               });
           }
 
@@ -219,7 +227,7 @@ export default function ThreeARScene() {
           }
         }
 
-        renderer.render(scene, camera);
+      renderer.render(scene, camera);
       });
     };
 
