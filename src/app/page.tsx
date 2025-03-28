@@ -18,6 +18,7 @@ export default function ThreeARScene() {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [detectionMessage, setDetectionMessage] = useState<string>("🔎 Détection du sol en cours...");
   const [controlMessage, setControlMessage] = useState<string>("");
+  const [showUnsupportedModal, setShowUnsupportedModal] = useState<boolean>(false);
 
   let hitTestSource: XRHitTestSource | null = null;
   let hitTestSourceRequested = false;
@@ -57,6 +58,22 @@ export default function ThreeARScene() {
   };
 
   useEffect(() => {
+    // Vérifier le support AR
+    if (!navigator.xr) {
+      setShowUnsupportedModal(true);
+      return;
+    }
+
+    navigator.xr.isSessionSupported('immersive-ar')
+      .then((supported) => {
+        if (!supported) {
+          setShowUnsupportedModal(true);
+        }
+      })
+      .catch(() => {
+        setShowUnsupportedModal(true);
+      });
+
     if (!mountRef.current || !overlayRef.current) {
       console.error("❌ DOM Overlay introuvable !");
       return;
@@ -341,6 +358,26 @@ export default function ThreeARScene() {
           >➡️</button>
         </div>
       </div>
+      
+      {showUnsupportedModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>😢 AR non supportée</h2>
+            <p>Désolé, votre appareil ou navigateur ne supporte pas la réalité augmentée.</p>
+            <p>Pour utiliser cette application, veuillez :</p>
+            <ul>
+              <li>📱 Utiliser un appareil mobile compatible AR</li>
+              <li>🌐 Ouvrir l&apos;application dans un navigateur supportant WebXR (Chrome, Edge ou Safari)</li>
+            </ul>
+            <button 
+              className="modal-button"
+              onClick={() => setShowUnsupportedModal(false)}
+            >
+              Compris
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
